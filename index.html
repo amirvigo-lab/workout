@@ -86,12 +86,23 @@
             color: #000;
         }
 
-        .reset-btn {
+        .finish-btn {
             width: 100%; padding: 15px;
-            background-color: #d32f2f; color: white;
+            background-color: var(--primary); color: #000;
             border: none; border-radius: 8px;
-            margin-top: 30px; font-size: 1rem;
+            margin-top: 20px; font-size: 1.1rem; font-weight: bold;
+            cursor: pointer;
         }
+        
+        .reset-link {
+            display: block; text-align: center; color: var(--text-sec);
+            margin-top: 15px; font-size: 0.9rem; text-decoration: underline; cursor: pointer;
+        }
+
+        .history-list { list-style: none; padding: 0; margin: 0; }
+        .history-list li { padding: 8px 0; border-bottom: 1px solid #333; color: var(--text-sec); }
+        .history-list li:last-child { border-bottom: none; }
+        .total-workouts { text-align: center; color: var(--accent); font-weight: bold; margin-top: 10px; font-size: 1.1rem; }
 
         .timer-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
@@ -114,7 +125,11 @@
     <h1>אימון בוקר (למתחילים)</h1>
     
     <div id="workout-container"></div>
-    <button class="reset-btn" onclick="resetWorkout()">איפוס אימון</button>
+    
+    <button class="finish-btn" onclick="finishWorkout()">סיים אימון ושמור ביומן 🏆</button>
+    <a class="reset-link" onclick="resetWorkout()">איפוס ללא שמירה</a>
+
+    <div id="history-container" style="margin-top: 30px;"></div>
 
     <div id="rest-timer" class="timer-bar">
         <div class="timer-text">מנוחה: <span id="time-display">01:30</span></div>
@@ -134,39 +149,15 @@
         };
 
         const exercises = [
-            { 
-                id: 'squat', 
-                name: '1. סקוואט (Squat)', 
-                desc: 'רגליים ברוחב כתפיים, גב ישר. רד לאט כאילו לישיבה, עלה חזרה. (3 סטים)',
-                reps: '8-12', sets: 3, icon: svgs.squat 
-            },
-            { 
-                id: 'pushups', 
-                name: '2. שכיבות סמיכה (Incline)', 
-                desc: 'ידיים על משטח מוגבה. גוף ישר כמו סרגל מהראש לעקבים. (3 סטים)',
-                reps: '8-12', sets: 3, icon: svgs.pushup 
-            },
-            { 
-                id: 'rows', 
-                name: '3. חתירה (Bodyweight Row)', 
-                desc: 'שכב מתחת למתח/שולחן. גוף ישר, משוך את החזה למוט. (3 סטים)',
-                reps: '8-12', sets: 3, icon: svgs.row 
-            },
-            { 
-                id: 'lunges', 
-                name: '4. מכרעים (Lunges)', 
-                desc: 'צעד גדול אחורה, כופף ברכיים ל-90 מעלות. גב זקוף. (3 סטים)',
-                reps: '8-10 רגל', sets: 3, icon: svgs.lunge 
-            },
-            { 
-                id: 'plank', 
-                name: '5. פלאנק (Plank)', 
-                desc: 'על המרפקים. בטן אסופה חזק, ישבן מכווץ. אל תיתן לאגן ליפול. (3 סטים)',
-                reps: 'מקסימום', sets: 3, icon: svgs.plank 
-            }
+            { id: 'squat', name: '1. סקוואט (Squat)', desc: 'רגליים ברוחב כתפיים, גב ישר. רד לאט כאילו לישיבה, עלה חזרה. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.squat },
+            { id: 'pushups', name: '2. שכיבות סמיכה (Incline)', desc: 'ידיים על משטח מוגבה. גוף ישר כמו סרגל מהראש לעקבים. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.pushup },
+            { id: 'rows', name: '3. חתירה (Bodyweight Row)', desc: 'שכב מתחת למתח/שולחן. גוף ישר, משוך את החזה למוט. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.row },
+            { id: 'lunges', name: '4. מכרעים (Lunges)', desc: 'צעד גדול אחורה, כופף ברכיים ל-90 מעלות. גב זקוף. (3 סטים)', reps: '8-10 רגל', sets: 3, icon: svgs.lunge },
+            { id: 'plank', name: '5. פלאנק (Plank)', desc: 'על המרפקים. בטן אסופה חזק, ישבן מכווץ. אל תיתן לאגן ליפול. (3 סטים)', reps: 'מקסימום', sets: 3, icon: svgs.plank }
         ];
 
         let workoutState = JSON.parse(localStorage.getItem('calisthenicsState')) || {};
+        let workoutHistory = JSON.parse(localStorage.getItem('calisthenicsHistory')) || [];
         let timerInterval, timeLeft = 90;
 
         function render() {
@@ -193,6 +184,24 @@
                     </div>
                 `;
             });
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const historyContainer = document.getElementById('history-container');
+            if (workoutHistory.length === 0) {
+                historyContainer.innerHTML = '<div class="exercise-card"><h3 style="text-align:center; color: var(--text-sec); margin:0;">עוד לא נרשמו אימונים. מחר מתחילים! 💪</h3></div>';
+                return;
+            }
+
+            let historyHtml = '<div class="exercise-card"><h3 style="margin-top:0;">יומן אימונים 📅</h3><ul class="history-list">';
+            // מציג את 7 האימונים האחרונים
+            const recent = workoutHistory.slice().reverse().slice(0, 7);
+            recent.forEach(date => {
+                historyHtml += `<li>✅ אימון הושלם ב- ${date}</li>`;
+            });
+            historyHtml += `</ul><div class="total-workouts">סה"כ אימונים: ${workoutHistory.length}</div></div>`;
+            historyContainer.innerHTML = historyHtml;
         }
 
         window.toggleSet = (setId) => {
@@ -205,6 +214,38 @@
             }
             localStorage.setItem('calisthenicsState', JSON.stringify(workoutState));
             render();
+        };
+
+        window.finishWorkout = () => {
+            // בודק אם סומן לפחות סט אחד
+            if (Object.keys(workoutState).length === 0) {
+                alert('לא סומנו סטים. סמן סטים כדי לסיים את האימון ולשמור.');
+                return;
+            }
+
+            if(confirm('כל הכבוד! לסיים את האימון ולשמור ביומן?')) {
+                const today = new Date().toLocaleDateString('he-IL');
+                
+                // מונע שמירה כפולה באותו יום (אופציונלי, אבל מומלץ כדי לא להציף)
+                if (workoutHistory[workoutHistory.length - 1] !== today) {
+                    workoutHistory.push(today);
+                    localStorage.setItem('calisthenicsHistory', JSON.stringify(workoutHistory));
+                }
+
+                workoutState = {};
+                localStorage.setItem('calisthenicsState', JSON.stringify(workoutState));
+                stopTimer();
+                render();
+            }
+        };
+
+        window.resetWorkout = () => {
+            if(confirm('האם לאפס את האימון הנוכחי ללא שמירה?')) {
+                workoutState = {};
+                localStorage.setItem('calisthenicsState', JSON.stringify(workoutState));
+                stopTimer();
+                render();
+            }
         };
 
         function startRestTimer() {
@@ -234,15 +275,6 @@
             const s = (timeLeft % 60).toString().padStart(2, '0');
             document.getElementById('time-display').textContent = `${m}:${s}`;
         }
-
-        window.resetWorkout = () => {
-            if(confirm('לאפס את האימון?')) {
-                workoutState = {};
-                localStorage.setItem('calisthenicsState', JSON.stringify(workoutState));
-                stopTimer();
-                render();
-            }
-        };
 
         render();
     </script>
