@@ -20,7 +20,7 @@
             color: var(--text-main);
             margin: 0;
             padding: 20px;
-            padding-bottom: 100px;
+            padding-bottom: 120px; 
         }
 
         h1 { text-align: center; color: var(--primary); margin-bottom: 20px; }
@@ -115,8 +115,9 @@
             z-index: 999;
         }
         .timer-bar.active { transform: translateY(0); }
-        .timer-text { font-size: 1.4rem; color: var(--accent); font-weight: bold; }
-        .timer-controls button { margin: 5px; padding: 5px 10px; background: transparent; border: 1px solid #777; color: #ccc; border-radius: 4px; }
+        .timer-text { font-size: 1.4rem; color: var(--accent); font-weight: bold; margin-top: 5px; }
+        .timer-controls { margin-bottom: 10px; }
+        .timer-controls button { margin: 0 5px; padding: 8px 15px; background: rgba(255,255,255,0.1); border: 1px solid #777; color: #ccc; border-radius: 20px; font-size: 1rem; cursor: pointer; }
 
     </style>
 </head>
@@ -132,18 +133,19 @@
     <div id="history-container" style="margin-top: 30px;"></div>
 
     <div id="rest-timer" class="timer-bar">
-        <div class="timer-text">מנוחה: <span id="time-display">01:30</span></div>
         <div class="timer-controls">
             <button onclick="stopTimer()">דלג</button>
             <button onclick="addTime()">+15 שניות</button>
         </div>
+        <div class="timer-text">מנוחה: <span id="time-display">01:00</span></div>
     </div>
 
     <script>
         const svgs = {
             squat: `<svg viewBox="0 0 100 100"><line x1="10" y1="90" x2="90" y2="90" stroke="#555" stroke-width="2" /><circle cx="50" cy="25" r="8" class="figure-head" /><path d="M50,33 L50,55 L30,75 L30,90" class="figure-line" /><path d="M50,55 L70,75 L70,90" class="figure-line" /><path d="M50,38 L75,38" class="figure-line" /></svg>`,
             pushup: `<svg viewBox="0 0 100 100"><line x1="70" y1="90" x2="70" y2="50" class="prop-line" /><line x1="60" y1="50" x2="80" y2="50" class="prop-line" /><line x1="10" y1="90" x2="65" y2="52" class="figure-line" /><line x1="60" y1="55" x2="65" y2="80" class="figure-line" /><circle cx="68" cy="48" r="6" class="figure-head" /><line x1="0" y1="90" x2="100" y2="90" stroke="#555" stroke-width="2" /></svg>`,
-            row: `<svg viewBox="0 0 100 100"><line x1="20" y1="30" x2="80" y2="30" class="prop-line" /><line x1="20" y1="30" x2="20" y2="90" stroke="#333" stroke-width="2" /><line x1="80" y1="30" x2="80" y2="90" stroke="#333" stroke-width="2" /><line x1="30" y1="90" x2="70" y2="45" class="figure-line" /><line x1="60" y1="30" x2="65" y2="50" class="figure-line" /><circle cx="75" cy="40" r="6" class="figure-head" /></svg>`,
+            // הציור החדש לשכיבות סמיכה הפוכות
+            back_widow: `<svg viewBox="0 0 100 100"><line x1="5" y1="90" x2="95" y2="90" stroke="#555" stroke-width="2" /><circle cx="20" cy="60" r="6" class="figure-head" /><line x1="25" y1="66" x2="60" y2="90" class="figure-line" /><path d="M60,90 L75,70 L90,90" class="figure-line" /><path d="M25,66 L35,90 L40,75" class="figure-line" /></svg>`,
             lunge: `<svg viewBox="0 0 100 100"><line x1="10" y1="90" x2="90" y2="90" stroke="#555" stroke-width="2" /><circle cx="30" cy="20" r="7" class="figure-head" /><line x1="30" y1="27" x2="30" y2="55" class="figure-line" /><path d="M30,55 L50,55 L50,90" class="figure-line" /><path d="M30,55 L15,75 L15,90" class="figure-line" /></svg>`,
             plank: `<svg viewBox="0 0 100 100"><line x1="5" y1="85" x2="95" y2="85" stroke="#555" stroke-width="2" /><line x1="15" y1="80" x2="75" y2="60" class="figure-line" /><path d="M75,60 L75,85" class="figure-line" /><circle cx="80" cy="55" r="6" class="figure-head" /></svg>`
         };
@@ -151,14 +153,15 @@
         const exercises = [
             { id: 'squat', name: '1. סקוואט (Squat)', desc: 'רגליים ברוחב כתפיים, גב ישר. רד לאט כאילו לישיבה, עלה חזרה. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.squat },
             { id: 'pushups', name: '2. שכיבות סמיכה (Incline)', desc: 'ידיים על משטח מוגבה. גוף ישר כמו סרגל מהראש לעקבים. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.pushup },
-            { id: 'rows', name: '3. חתירה (Bodyweight Row)', desc: 'שכב מתחת למתח/שולחן. גוף ישר, משוך את החזה למוט. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.row },
+            // התרגיל המעודכן:
+            { id: 'back_widows', name: '3. שכיבות הפוכות (Back Widows)', desc: 'שכב על הגב, ברכיים כפופות. דחוף את הרצפה עם המרפקים חזק כדי להרים את החזה והשכמות באוויר. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.back_widow },
             { id: 'lunges', name: '4. מכרעים (Lunges)', desc: 'צעד גדול אחורה, כופף ברכיים ל-90 מעלות. גב זקוף. (3 סטים)', reps: '8-10 רגל', sets: 3, icon: svgs.lunge },
             { id: 'plank', name: '5. פלאנק (Plank)', desc: 'על המרפקים. בטן אסופה חזק, ישבן מכווץ. אל תיתן לאגן ליפול. (3 סטים)', reps: 'מקסימום', sets: 3, icon: svgs.plank }
         ];
 
         let workoutState = JSON.parse(localStorage.getItem('calisthenicsState')) || {};
         let workoutHistory = JSON.parse(localStorage.getItem('calisthenicsHistory')) || [];
-        let timerInterval, timeLeft = 90;
+        let timerInterval, timeLeft = 60;
 
         function render() {
             const container = document.getElementById('workout-container');
@@ -195,7 +198,6 @@
             }
 
             let historyHtml = '<div class="exercise-card"><h3 style="margin-top:0;">יומן אימונים 📅</h3><ul class="history-list">';
-            // מציג את 7 האימונים האחרונים
             const recent = workoutHistory.slice().reverse().slice(0, 7);
             recent.forEach(date => {
                 historyHtml += `<li>✅ אימון הושלם ב- ${date}</li>`;
@@ -217,7 +219,6 @@
         };
 
         window.finishWorkout = () => {
-            // בודק אם סומן לפחות סט אחד
             if (Object.keys(workoutState).length === 0) {
                 alert('לא סומנו סטים. סמן סטים כדי לסיים את האימון ולשמור.');
                 return;
@@ -226,7 +227,6 @@
             if(confirm('כל הכבוד! לסיים את האימון ולשמור ביומן?')) {
                 const today = new Date().toLocaleDateString('he-IL');
                 
-                // מונע שמירה כפולה באותו יום (אופציונלי, אבל מומלץ כדי לא להציף)
                 if (workoutHistory[workoutHistory.length - 1] !== today) {
                     workoutHistory.push(today);
                     localStorage.setItem('calisthenicsHistory', JSON.stringify(workoutHistory));
@@ -250,7 +250,7 @@
 
         function startRestTimer() {
             clearInterval(timerInterval);
-            timeLeft = 90;
+            timeLeft = 60;
             document.getElementById('rest-timer').classList.add('active');
             updateTimerDisplay();
             timerInterval = setInterval(() => {
