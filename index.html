@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>אימון קליסטניקס (מלא)</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --primary: #4CAF50;
+            --text-main: #e0e0e0;
+            --text-sec: #a0a0a0;
+            --accent: #2196F3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        h1 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+
+        .exercise-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        .exercise-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .exercise-name { font-weight: bold; font-size: 1.2rem; }
+        
+        /* עיצוב להסבר המילולי */
+        .exercise-desc {
+            font-size: 0.95rem;
+            color: var(--text-sec);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .visual-container {
+            width: 100%;
+            height: 160px; /* גובה קומפקטי יותר */
+            background-color: #252525;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #333;
+        }
+        
+        svg { width: 100%; height: 100%; max-width: 200px; }
+        .figure-line { stroke: #e0e0e0; stroke-width: 4; stroke-linecap: round; fill: none; }
+        .figure-head { fill: #e0e0e0; }
+        .prop-line { stroke: #4CAF50; stroke-width: 3; }
+
+        .sets-container { display: flex; gap: 10px; }
+
+        .set-btn {
+            background-color: #333;
+            border: 2px solid #555;
+            color: #fff;
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .set-btn.done {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: #000;
+        }
+
+        .reset-btn {
+            width: 100%; padding: 15px;
+            background-color: #d32f2f; color: white;
+            border: none; border-radius: 8px;
+            margin-top: 30px; font-size: 1rem;
+        }
+
+        .timer-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background-color: #252525; padding: 15px;
+            text-align: center;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            border-top: 3px solid var(--accent);
+            box-sizing: border-box;
+            z-index: 999;
+        }
+        .timer-bar.active { transform: translateY(0); }
+        .timer-text { font-size: 1.4rem; color: var(--accent); font-weight: bold; }
+        .timer-controls button { margin: 5px; padding: 5px 10px; background: transparent; border: 1px solid #777; color: #ccc; border-radius: 4px; }
+
+    </style>
+</head>
+<body>
+
+    <h1>אימון בוקר (למתחילים)</h1>
+    
+    <div id="workout-container"></div>
+    <button class="reset-btn" onclick="resetWorkout()">איפוס אימון</button>
+
+    <div id="rest-timer" class="timer-bar">
+        <div class="timer-text">מנוחה: <span id="time-display">01:30</span></div>
+        <div class="timer-controls">
+            <button onclick="stopTimer()">דלג</button>
+            <button onclick="addTime()">+15 שניות</button>
+        </div>
+    </div>
+
+    <script>
+        const svgs = {
+            squat: `<svg viewBox="0 0 100 100"><line x1="10" y1="90" x2="90" y2="90" stroke="#555" stroke-width="2" /><circle cx="50" cy="25" r="8" class="figure-head" /><path d="M50,33 L50,55 L30,75 L30,90" class="figure-line" /><path d="M50,55 L70,75 L70,90" class="figure-line" /><path d="M50,38 L75,38" class="figure-line" /></svg>`,
+            pushup: `<svg viewBox="0 0 100 100"><line x1="70" y1="90" x2="70" y2="50" class="prop-line" /><line x1="60" y1="50" x2="80" y2="50" class="prop-line" /><line x1="10" y1="90" x2="65" y2="52" class="figure-line" /><line x1="60" y1="55" x2="65" y2="80" class="figure-line" /><circle cx="68" cy="48" r="6" class="figure-head" /><line x1="0" y1="90" x2="100" y2="90" stroke="#555" stroke-width="2" /></svg>`,
+            row: `<svg viewBox="0 0 100 100"><line x1="20" y1="30" x2="80" y2="30" class="prop-line" /><line x1="20" y1="30" x2="20" y2="90" stroke="#333" stroke-width="2" /><line x1="80" y1="30" x2="80" y2="90" stroke="#333" stroke-width="2" /><line x1="30" y1="90" x2="70" y2="45" class="figure-line" /><line x1="60" y1="30" x2="65" y2="50" class="figure-line" /><circle cx="75" cy="40" r="6" class="figure-head" /></svg>`,
+            lunge: `<svg viewBox="0 0 100 100"><line x1="10" y1="90" x2="90" y2="90" stroke="#555" stroke-width="2" /><circle cx="30" cy="20" r="7" class="figure-head" /><line x1="30" y1="27" x2="30" y2="55" class="figure-line" /><path d="M30,55 L50,55 L50,90" class="figure-line" /><path d="M30,55 L15,75 L15,90" class="figure-line" /></svg>`,
+            plank: `<svg viewBox="0 0 100 100"><line x1="5" y1="85" x2="95" y2="85" stroke="#555" stroke-width="2" /><line x1="15" y1="80" x2="75" y2="60" class="figure-line" /><path d="M75,60 L75,85" class="figure-line" /><circle cx="80" cy="55" r="6" class="figure-head" /></svg>`
+        };
+
+        const exercises = [
+            { 
+                id: 'squat', 
+                name: '1. סקוואט (Squat)', 
+                desc: 'רגליים ברוחב כתפיים, גב ישר. רד לאט כאילו לישיבה, עלה חזרה.',
+                reps: '8-12', sets: 3, icon: svgs.squat 
+            },
+            { 
+                id: 'pushups', 
+                name: '2. שכיבות סמיכה (Incline)', 
+                desc: 'ידיים על משטח מוגבה. גוף ישר כמו סרגל מהראש לעקבים.',
+                reps: '8-12', sets: 3, icon: svgs.pushup 
+            },
+            { 
+                id: 'rows', 
+                name: '3. חתירה (Bodyweight Row)', 
+                desc: 'שכב מתחת למתח/שולחן. גוף ישר, משוך את החזה למוט.',
+                reps: '8-12', sets: 3, icon: svgs.row 
+            },
+            { 
+                id: 'lunges', 
+                name: '4. מכרעים (Lunges)', 
+                desc: 'צעד גדול אחורה, כופף ברכיים ל-90 מעלות. גב זקוף.',
+                reps: '8-10 רגל', sets: 3, icon: svgs.lunge 
+            },
+            { 
+                id: 'plank', 
+                name: '5. פלאנק (Plank)', 
+                desc: 'על המרפקים. בטן אסופה חזק, ישבן מכווץ. אל תיתן לאגן ליפול.',
+                reps: 'מקסימום', sets: 3, icon: svgs.plank 
+            }
+        ];
+
+        let workoutState = JSON.parse(localStorage.getItem('calisthenicsState')) || {};
+        let timerInterval, timeLeft = 90;
+
+        function render() {
+            const container = document.getElementById('workout-container');
+            container.innerHTML = '';
+            
+            exercises.forEach(ex => {
+                let setsHtml = '';
+                for(let i=1; i<=ex.sets; i++) {
+                    const setId = `${ex.id}_${i}`;
+                    const isDone = workoutState[setId] ? 'done' : '';
+                    setsHtml += `<div class="set-btn ${isDone}" onclick="toggleSet('${setId}')">${i}</div>`;
+                }
+
+                container.innerHTML += `
+                    <div class="exercise-card">
+                        <div class="exercise-header">
+                            <span class="exercise-name">${ex.name}</span>
+                            <span style="color:var(--primary)">${ex.reps}</span>
+                        </div>
+                        <div class="exercise-desc">${ex.desc}</div>
+                        <div class="visual-container">${ex.icon}</div>
+                        <div class="sets-container">${setsHtml}</div>
+                    </div>
+                `;
+            });
+        }
+
+        window.toggleSet = (setId) => {
+            if (workoutState[setId]) {
+                delete workoutState[setId];
+                stopTimer();
+            } else {
+                workoutState[setId] = true;
+                startRestTimer();
+            }
+            localStorage.setItem('calisthenicsState', JSON.stringify(workoutState));
+            render();
+        };
+
+        function startRestTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 90;
+            document.getElementById('rest-timer').classList.add('active');
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    stopTimer();
+                    if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('rest-timer').classList.remove('active');
+        }
+
+        function addTime() { timeLeft += 15; updateTimerDisplay(); }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('time-display').textContent = `${m}:${s}`;
+        }
+
+        window.resetWorkout = () => {
+            if(confirm('לאפס את האימון?')) {
+                workoutState = {};
+                localStorage.setItem('calisthenicsState', JSON.stringify(workoutState));
+                stopTimer();
+                render();
+            }
+        };
+
+        render();
+    </script>
+</body>
+</html>
