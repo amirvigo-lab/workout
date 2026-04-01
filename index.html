@@ -20,10 +20,72 @@
             color: var(--text-main);
             margin: 0;
             padding: 20px;
-            padding-bottom: 120px; 
+            padding-bottom: 140px; 
+            overflow-x: hidden;
         }
 
         h1 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+
+        /* --- עיצוב חגיגות והישגים --- */
+        .celebration-banner {
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-size: 1.1rem;
+        }
+        
+        .celebration-banner.weekly {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .celebration-banner.milestone {
+            background: linear-gradient(135deg, #FF1493 0%, #8A2BE2 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+            font-size: 1.2rem;
+        }
+
+        .celebration-banner .icon {
+            font-size: 2.5rem;
+            animation: bounce 1.5s infinite alternate ease-in-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8) translateY(-20px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-8px) scale(1.1); }
+        }
+
+        /* אנימציית קונפטי */
+        .confetti {
+            position: fixed;
+            top: -20px;
+            width: 12px;
+            height: 12px;
+            z-index: 99999;
+            animation: fall linear forwards;
+            opacity: 0.8;
+            border-radius: 2px;
+        }
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        /* ----------------------- */
 
         .exercise-card {
             background-color: var(--card-bg);
@@ -48,6 +110,36 @@
             margin-bottom: 12px;
             line-height: 1.4;
         }
+
+        /* --- עיצוב מעקב זמן פלאנק --- */
+        .plank-tracker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            background-color: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px dashed #555;
+        }
+        .time-adjust-btn {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            width: 35px;
+            height: 35px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .time-adjust-btn:active {
+            background-color: var(--primary);
+            color: #000;
+        }
+        /* ----------------------- */
 
         .visual-container {
             width: 100%;
@@ -106,24 +198,30 @@
 
         .timer-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background-color: #252525; padding: 15px;
+            background-color: #252525; 
+            padding: 15px;
+            padding-bottom: calc(15px + env(safe-area-inset-bottom, 20px)); 
             text-align: center;
             transform: translateY(100%);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
             border-top: 3px solid var(--accent);
             box-sizing: border-box;
-            z-index: 999;
+            z-index: 9999;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.6);
         }
         .timer-bar.active { transform: translateY(0); }
         .timer-text { font-size: 1.4rem; color: var(--accent); font-weight: bold; margin-top: 5px; }
         .timer-controls { margin-bottom: 10px; }
-        .timer-controls button { margin: 0 5px; padding: 8px 15px; background: rgba(255,255,255,0.1); border: 1px solid #777; color: #ccc; border-radius: 20px; font-size: 1rem; cursor: pointer; }
+        .timer-controls button { margin: 0 5px; padding: 10px 18px; background: rgba(255,255,255,0.1); border: 1px solid #777; color: #fff; border-radius: 20px; font-size: 1rem; cursor: pointer; }
 
     </style>
 </head>
 <body>
 
-    <h1>אימון בוקר (למתחילים)</h1>
+    <h1>אימון בוקר</h1>
+    
+    <!-- מיכל החגיגות (יאוכלס אוטומטית כשיש הישגים) -->
+    <div id="celebration-container"></div>
     
     <div id="workout-container"></div>
     
@@ -144,7 +242,6 @@
         const svgs = {
             squat: `<svg viewBox="0 0 100 100"><line x1="10" y1="90" x2="90" y2="90" stroke="#555" stroke-width="2" /><circle cx="50" cy="25" r="8" class="figure-head" /><path d="M50,33 L50,55 L30,75 L30,90" class="figure-line" /><path d="M50,55 L70,75 L70,90" class="figure-line" /><path d="M50,38 L75,38" class="figure-line" /></svg>`,
             pushup: `<svg viewBox="0 0 100 100"><line x1="70" y1="90" x2="70" y2="50" class="prop-line" /><line x1="60" y1="50" x2="80" y2="50" class="prop-line" /><line x1="10" y1="90" x2="65" y2="52" class="figure-line" /><line x1="60" y1="55" x2="65" y2="80" class="figure-line" /><circle cx="68" cy="48" r="6" class="figure-head" /><line x1="0" y1="90" x2="100" y2="90" stroke="#555" stroke-width="2" /></svg>`,
-            // הציור החדש לשכיבות סמיכה הפוכות
             back_widow: `<svg viewBox="0 0 100 100"><line x1="5" y1="90" x2="95" y2="90" stroke="#555" stroke-width="2" /><circle cx="20" cy="60" r="6" class="figure-head" /><line x1="25" y1="66" x2="60" y2="90" class="figure-line" /><path d="M60,90 L75,70 L90,90" class="figure-line" /><path d="M25,66 L35,90 L40,75" class="figure-line" /></svg>`,
             lunge: `<svg viewBox="0 0 100 100"><line x1="10" y1="90" x2="90" y2="90" stroke="#555" stroke-width="2" /><circle cx="30" cy="20" r="7" class="figure-head" /><line x1="30" y1="27" x2="30" y2="55" class="figure-line" /><path d="M30,55 L50,55 L50,90" class="figure-line" /><path d="M30,55 L15,75 L15,90" class="figure-line" /></svg>`,
             plank: `<svg viewBox="0 0 100 100"><line x1="5" y1="85" x2="95" y2="85" stroke="#555" stroke-width="2" /><line x1="15" y1="80" x2="75" y2="60" class="figure-line" /><path d="M75,60 L75,85" class="figure-line" /><circle cx="80" cy="55" r="6" class="figure-head" /></svg>`
@@ -153,7 +250,6 @@
         const exercises = [
             { id: 'squat', name: '1. סקוואט (Squat)', desc: 'רגליים ברוחב כתפיים, גב ישר. רד לאט כאילו לישיבה, עלה חזרה. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.squat },
             { id: 'pushups', name: '2. שכיבות סמיכה (Incline)', desc: 'ידיים על משטח מוגבה. גוף ישר כמו סרגל מהראש לעקבים. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.pushup },
-            // התרגיל המעודכן:
             { id: 'back_widows', name: '3. שכיבות הפוכות (Back Widows)', desc: 'שכב על הגב, ברכיים כפופות. דחוף את הרצפה עם המרפקים חזק כדי להרים את החזה והשכמות באוויר. (3 סטים)', reps: '8-12', sets: 3, icon: svgs.back_widow },
             { id: 'lunges', name: '4. מכרעים (Lunges)', desc: 'צעד גדול אחורה, כופף ברכיים ל-90 מעלות. גב זקוף. (3 סטים)', reps: '8-10 רגל', sets: 3, icon: svgs.lunge },
             { id: 'plank', name: '5. פלאנק (Plank)', desc: 'על המרפקים. בטן אסופה חזק, ישבן מכווץ. אל תיתן לאגן ליפול. (3 סטים)', reps: 'מקסימום', sets: 3, icon: svgs.plank }
@@ -162,6 +258,93 @@
         let workoutState = JSON.parse(localStorage.getItem('calisthenicsState')) || {};
         let workoutHistory = JSON.parse(localStorage.getItem('calisthenicsHistory')) || [];
         let timerInterval, timeLeft = 60;
+        let plankTime = parseInt(localStorage.getItem('calisthenicsPlankTime')) || 30;
+
+        // פונקציית עזר להמרת תאריך "ישראלי" לאובייקט Date
+        function parseHeDate(dateStr) {
+            const parts = dateStr.split('.');
+            if(parts.length === 3) {
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return new Date(dateStr);
+        }
+
+        // פונקציה לבדיקת מספר האימונים מתחילת השבוע (ראשון)
+        function getWorkoutsThisWeek() {
+            const today = new Date();
+            // מוצא את יום ראשון של השבוע הנוכחי
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() - today.getDay());
+            sunday.setHours(0, 0, 0, 0);
+
+            // מוצא את יום שבת של השבוע הנוכחי
+            const saturday = new Date(sunday);
+            saturday.setDate(sunday.getDate() + 6);
+            saturday.setHours(23, 59, 59, 999);
+
+            let count = 0;
+            workoutHistory.forEach(dateStr => {
+                const d = parseHeDate(dateStr);
+                if (d >= sunday && d <= saturday) {
+                    count++;
+                }
+            });
+            return count;
+        }
+
+        // פונקציית חגיגות!
+        function renderCelebrations() {
+            const container = document.getElementById('celebration-container');
+            container.innerHTML = '';
+            
+            const total = workoutHistory.length;
+            const thisWeek = getWorkoutsThisWeek();
+            let html = '';
+
+            // חגיגת 10 (עובד ל-10, 20, 30...)
+            if (total > 0 && total % 10 === 0) {
+                html += `
+                    <div class="celebration-banner milestone">
+                        <div class="icon">🏆</div>
+                        <div>
+                            <strong>וואו! השלמת ${total} אימונים!</strong><br>
+                            הישג מטורף, אתה בדרך הנכונה!
+                        </div>
+                    </div>`;
+            }
+            // חגיגה שבועית (3 ומעלה באותו שבוע)
+            else if (thisWeek >= 3) {
+                html += `
+                    <div class="celebration-banner weekly">
+                        <div class="icon">🔥</div>
+                        <div>
+                            <strong>כל הכבוד!</strong><br>
+                            השלמת את היעד השבועי (${thisWeek} אימונים).
+                        </div>
+                    </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // אפקט קונפטי שנופל מהשמיים
+        function shootConfetti() {
+            const colors = ['#FFD700', '#FF1493', '#00FF00', '#00FFFF', '#FF4500'];
+            for (let i = 0; i < 60; i++) {
+                let conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                // קצבים שונים של נפילה
+                let duration = Math.random() * 2 + 2; 
+                conf.style.animationDuration = duration + 's';
+                conf.style.animationDelay = Math.random() * 0.5 + 's';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                document.body.appendChild(conf);
+                
+                // מנקה את האלמנט מהדף כשהאנימציה מסתיימת
+                setTimeout(() => conf.remove(), (duration + 1) * 1000);
+            }
+        }
 
         function render() {
             const container = document.getElementById('workout-container');
@@ -175,6 +358,18 @@
                     setsHtml += `<div class="set-btn ${isDone}" onclick="toggleSet('${setId}')">${i}</div>`;
                 }
 
+                let extraHtml = '';
+                if (ex.id === 'plank') {
+                    extraHtml = `
+                        <div class="plank-tracker">
+                            <span>זמן (שניות):</span>
+                            <button class="time-adjust-btn" onclick="updatePlankTime(-10)">-</button>
+                            <span id="plank-time-val" style="color:var(--primary); font-size:1.3rem; font-weight:bold; min-width:30px; text-align:center;">${plankTime}</span>
+                            <button class="time-adjust-btn" onclick="updatePlankTime(10)">+</button>
+                        </div>
+                    `;
+                }
+
                 container.innerHTML += `
                     <div class="exercise-card">
                         <div class="exercise-header">
@@ -182,12 +377,14 @@
                             <span style="color:var(--primary)">${ex.reps}</span>
                         </div>
                         <div class="exercise-desc">${ex.desc}</div>
+                        ${extraHtml}
                         <div class="visual-container">${ex.icon}</div>
                         <div class="sets-container">${setsHtml}</div>
                     </div>
                 `;
             });
             renderHistory();
+            renderCelebrations();
         }
 
         function renderHistory() {
@@ -205,6 +402,16 @@
             historyHtml += `</ul><div class="total-workouts">סה"כ אימונים: ${workoutHistory.length}</div></div>`;
             historyContainer.innerHTML = historyHtml;
         }
+
+        window.updatePlankTime = (change) => {
+            plankTime += change;
+            if (plankTime < 0) plankTime = 0; // לא נותן לרדת מתחת ל-0
+            localStorage.setItem('calisthenicsPlankTime', plankTime);
+            
+            // עדכון התצוגה בלי לרנדר את כל המסך מחדש
+            const valDisplay = document.getElementById('plank-time-val');
+            if (valDisplay) valDisplay.textContent = plankTime;
+        };
 
         window.toggleSet = (setId) => {
             if (workoutState[setId]) {
@@ -226,16 +433,23 @@
 
             if(confirm('כל הכבוד! לסיים את האימון ולשמור ביומן?')) {
                 const today = new Date().toLocaleDateString('he-IL');
+                let newlyAdded = false;
                 
                 if (workoutHistory[workoutHistory.length - 1] !== today) {
                     workoutHistory.push(today);
                     localStorage.setItem('calisthenicsHistory', JSON.stringify(workoutHistory));
+                    newlyAdded = true;
                 }
 
                 workoutState = {};
                 localStorage.setItem('calisthenicsState', JSON.stringify(workoutState));
                 stopTimer();
-                render();
+                render(); // מרנדר מחדש ומפעיל את החגיגות אם צריך
+
+                // אם בדיוק עכשיו הגעת לכפולה של 10, זרוק קונפטי מסך מלא!
+                if (newlyAdded && workoutHistory.length > 0 && workoutHistory.length % 10 === 0) {
+                    setTimeout(shootConfetti, 300);
+                }
             }
         };
 
@@ -276,6 +490,7 @@
             document.getElementById('time-display').textContent = `${m}:${s}`;
         }
 
+        // הפעלה ראשונית
         render();
     </script>
 </body>
